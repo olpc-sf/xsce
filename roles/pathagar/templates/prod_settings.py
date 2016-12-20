@@ -9,7 +9,7 @@ MEDIA_URL = '{{ pathagar_subpath }}/static_media/'
 SECRET_KEY = '7ks@b7+gi^c4adff)6ka228#rd4f62v*g_dtmo*@i62k)qn=cs'
 DATABASES = {
     'default': {
-            'ENGINE':'django.db.backends.postgresql_psycopg2',
+            'ENGINE':'django.db.backends.sqlite3',
             'NAME': '{{ pathagar_db_name }}',
             'USER': '{{ pathagar_db_user }}',
             'PASSWORD': '{{ pathagar_db_password }}',

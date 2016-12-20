@@ -1,16 +1,19 @@
 - name: Remove if exist pathagar rpm version
-  yum: name=pathagar state=absent
+  apt: name=pathagar state=absent
 
 - name: Install pathagar pre requisites
-  yum: name={{ item }}
+  apt: name={{ item }}
        state=installed
   with_items:
     - python-virtualenv
     - python-pip
     - python-psycopg2
-    - mod_wsgi
-    - libxml2-devel
-    - libxslt-devel
+    - libapache2-mod-wsgi
+    - libxml2-dev
+    - libxslt-dev
+    - libz-dev
+    #- postgresql
+    - sqlite3
   tags:
     - download
 
@@ -24,8 +27,8 @@
 - name: Create books destination folder
   file: path={{ pathagar_media }}
         state=directory
-        owner=apache
-        group=apache
+        owner=www-data
+        group=www-data
         mode=0755
 
 - name: Determine if pathagar has already been downloaded from git
@@ -39,26 +42,26 @@
        dest={{ pathagar_src }}
        update=yes
        version=master
-  when: not {{ use_cache }} and not {{ no_network }} and pathagar.stat.exists is defined and not pathagar.stat.exists
+  #when: not {{ use_cache }} and not {{ no_network }} and pathagar.stat.exists is defined and not pathagar.stat.exists
   tags:
     - download2
 
-- name: download pathagar requirements in a virtualenv
-  pip: name={{ item }}
-          extra_args="--download {{ pip_packages_dir }}"
-  with_items:
-    - Django==1.4.5
-    - django-tagging==0.3.1
-    - django-sendfile==0.3.6
-    - django-taggit==0.14
-    - lxml==3.4.4
-  when: not {{ use_cache }} and not {{ no_network }}
-  tags:
-    - download2
+  #- name: download pathagar requirements in a virtualenv
+  #pip: name={{ item }}
+  #        extra_args="--download {{ pip_packages_dir }}"
+  #with_items:
+  #  - Django==1.4.5
+  #  - django-tagging==0.3.1
+  #  - django-sendfile==0.3.6
+  #  - django-taggit==0.14
+  #  - lxml==3.4.4
+  #when: not {{ use_cache }} and not {{ no_network }}
+  #tags:
+  #  - download2
+  #extra_args="--no-index --find-links=file://{{ pip_packages_dir }}"
 
 - name: Install pathagar requirements in a virtualenv
   pip: name={{ item }}
-       extra_args="--no-index --find-links=file://{{ pip_packages_dir }}"
        virtualenv={{ pathagar_venv }}
        virtualenv_site_packages=yes
   with_items:
@@ -66,55 +69,55 @@
     - django-tagging==0.3.1
     - django-sendfile==0.3.6
     - lxml==3.4.4
+      #extra_args="--use-wheel --no-index --find-links=file://{{ pip_packages_dir }}"
 
 - name: Install pathagar requirements in a virtualenv
   pip: name={{ item }}
-       extra_args="--use-wheel --no-index --find-links=file://{{ pip_packages_dir }}"
        virtualenv={{ pathagar_venv }}
        virtualenv_site_packages=yes
   with_items:
     - django-taggit==0.14
 
-- name: Create pathagar postgresql user
-  postgresql_user: name={{ pathagar_db_user }}
-                   password={{ pathagar_db_password }}
-                   role_attr_flags=NOSUPERUSER,NOCREATEROLE,NOCREATEDB
-                   state=present
-  sudo: yes
-  sudo_user: postgres
+  #- name: Create pathagar postgresql user
+  #postgresql_user: name={{ pathagar_db_user }}
+  #                 password={{ pathagar_db_password }}
+  #                 role_attr_flags=NOSUPERUSER,NOCREATEROLE,NOCREATEDB
+  #                 state=present
+  #sudo: yes
+  #sudo_user: postgres
 
-- name: Stop postgresql
-  service: name=postgresql
-           state=stopped
+  #- name: Stop postgresql
+  #service: name=postgresql
+  #         state=stopped
+  #
+  #- name: Start postgresql-xs
+  #service: name=postgresql-xs
+  #         state=started
+  #
+  #- name: Enable pathagar postgresql user access by md5 method
+  #lineinfile: backup=yes
+  #            dest=/library/pgsql-xs/pg_hba.conf
+  #            regexp="^host\s+pathagar"
+  #            line="host    pathagar        pathagar     samehost     md5"
+  #            state=present
+  #            insertafter="^# IPv4 local connections"
+  #            owner=postgres
+  #            group=postgres
+  #register: enable_pathagar_md5_access
 
-- name: Start postgresql-xs
-  service: name=postgresql-xs
-           state=started
+  #- name: Reload postgresql service
+  #service: name=postgresql-xs
+  #         state=reloaded
+  #when: enable_pathagar_md5_access.changed
 
-- name: Enable pathagar postgresql user access by md5 method
-  lineinfile: backup=yes
-              dest=/library/pgsql-xs/pg_hba.conf
-              regexp="^host\s+pathagar"
-              line="host    pathagar        pathagar     samehost     md5"
-              state=present
-              insertafter="^# IPv4 local connections"
-              owner=postgres
-              group=postgres
-  register: enable_pathagar_md5_access
-
-- name: Reload postgresql service
-  service: name=postgresql-xs
-           state=reloaded
-  when: enable_pathagar_md5_access.changed
-
-- name: Create pathagar postgresql database
-  postgresql_db: name={{ pathagar_db_name }}
-                 encoding=utf8
-                 owner={{ pathagar_db_user }}
-                 state=present
-                 template=template0
-  sudo: yes
-  sudo_user: postgres
+  #- name: Create pathagar postgresql database
+  #postgresql_db: name={{ pathagar_db_name }}
+  #               encoding=utf8
+  #               owner={{ pathagar_db_user }}
+  #               state=present
+  #               template=template0
+  #sudo: yes
+  #sudo_user: postgres
 
 - name: Install XS custom settings for patahgar
   template: src=prod_settings.py
